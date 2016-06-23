@@ -58,7 +58,7 @@
 
 - (WebView *)webView
 {
-	return [[webView retain] autorelease];
+	return webView;
 }
 
 - (void)setWebView:(WebView *)aWebView
@@ -71,8 +71,7 @@
 		[webView setApplicationNameForUserAgent:nil];
 		[[NSNotificationCenter defaultCenter] removeObserver:self];
 		
-		[webView release];
-		webView = [aWebView retain];
+		webView = aWebView;
 		
 		if (webView) {
 			[webView setPostsFrameChangedNotifications:TRUE];
@@ -185,14 +184,13 @@
 
 - (NSString *)storeHost
 {
-	return [[storeHost retain] autorelease];
+	return storeHost;
 }
 
 - (void)setStoreHost:(NSString *)aHost
 {
 	if (storeHost != aHost) {
-		[storeHost release];
-		storeHost = [aHost retain];
+		storeHost = aHost;
 	}
 }
 
@@ -231,26 +229,22 @@
 
 - (NSMutableDictionary *)hostCertificates
 {
-	return [[hostCertificates retain] autorelease];
+	return hostCertificates;
 }
 - (void)setHostCertificates:(NSMutableDictionary *)anHostCertificates
 {
 	if (hostCertificates != anHostCertificates) {
-		[anHostCertificates retain];
-		[hostCertificates release];
 		hostCertificates = anHostCertificates;
 	}
 }
 
 - (NSMapTable *)connectionsToRequests
 {
-	return [[connectionsToRequests retain] autorelease];
+	return connectionsToRequests;
 }
 - (void)setConnectionsToRequests:(NSMapTable *)aConnectionsToRequests
 {
 	if (connectionsToRequests != aConnectionsToRequests) {
-		[aConnectionsToRequests retain];
-		[connectionsToRequests release];
 		connectionsToRequests = aConnectionsToRequests;
 	}
 }
@@ -322,7 +316,7 @@
 										 styleMask:(NSClosableWindowMask|NSResizableWindowMask)
 										 backing:NSBackingStoreBuffered
 										 defer:NO];
-	WebView *subWebView = [[[WebView alloc] initWithFrame:NSMakeRect(0,0,0,0)] autorelease];
+	WebView *subWebView = [[WebView alloc] initWithFrame:NSMakeRect(0,0,0,0)];
 	[window setReleasedWhenClosed:TRUE];
 	[window setContentView:subWebView];
 	[window makeKeyAndOrderFront:sender];
@@ -339,7 +333,7 @@
 	NSString *host = [URL host];
 	if ([[self hostCertificates] objectForKey:host] == nil)
 	{
-		NSURLConnection *connection = [[[NSURLConnection alloc] initWithRequest:request delegate:self] autorelease];
+		NSURLConnection *connection = [[NSURLConnection alloc] initWithRequest:request delegate:self];
 		[[self connectionsToRequests] setObject:request forKey:connection];
 	}
 #endif
@@ -388,7 +382,7 @@
 	CFIndex idx;
 	for (idx = 0; idx < (CFIndex)count; idx++) {
 		SecCertificateRef certificateRef = SecTrustGetCertificateAtIndex(trustRef, idx);
-		[certificates addObject:(id)certificateRef];
+		[certificates addObject:(id)CFBridgingRelease(certificateRef)];
 	}
 
 	NSURLRequest *request = [[self connectionsToRequests] objectForKey:connection];
@@ -409,7 +403,6 @@
 	[self setHostCertificates:nil];
 	[self setConnectionsToRequests:nil];
 
-	[super dealloc];
 }
 
 @end
