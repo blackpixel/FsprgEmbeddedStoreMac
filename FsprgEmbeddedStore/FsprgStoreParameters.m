@@ -26,6 +26,7 @@ static NSString * const kOption = @"option";
 static NSString * const kReferrer = @"referrer";
 static NSString * const kSource = @"source";
 static NSString * const kCoupon = @"coupon";
+static NSString * const kTags = @"tags";
 static NSString * const kContactFname = @"contact_fname";
 static NSString * const kContactLname = @"contact_lname";
 static NSString * const kContactEmail = @"contact_email";
@@ -91,7 +92,7 @@ static NSMutableDictionary *keyPathsForValuesAffecting;
 
 - (NSMutableDictionary *)raw
 {
-    return raw; 
+    return raw;
 }
 
 - (void)setRaw:(NSMutableDictionary *)aRaw
@@ -269,6 +270,15 @@ static NSMutableDictionary *keyPathsForValuesAffecting;
 	[self setObject:aCoupon forKey:kCoupon];
 }
 
+- (NSString *)tags
+{
+    return [[self raw] objectForKey:kTags];
+}
+- (void)setTags:(NSString *)aTags
+{
+    [self setObject:aTags forKey:kTags];
+}
+
 - (BOOL)hasContactDefaults
 {
 	NSArray *allKeys = [[self raw] allKeys];
@@ -328,7 +338,6 @@ static NSMutableDictionary *keyPathsForValuesAffecting;
 - (void)dealloc
 {
     [self setRaw:nil];
-	
 }
 
 @end
