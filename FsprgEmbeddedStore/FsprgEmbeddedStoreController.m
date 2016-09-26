@@ -14,7 +14,7 @@
 #define RETRIEVE_SSL_CERTIFICATES defined(MAC_OS_X_VERSION_10_6) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6
 
 
-@interface FsprgEmbeddedStoreController (Private)
+@interface FsprgEmbeddedStoreController (Private) <WebFrameLoadDelegate,WebUIDelegate,WebResourceLoadDelegate>
 
 - (void)setIsLoading:(BOOL)aFlag;
 - (void)setEstimatedLoadingProgress:(double)aProgress;
@@ -301,8 +301,13 @@
 - (void)webView:(WebView *)sender runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WebFrame *)frame
 {
 	NSString *title = [sender mainFrameTitle];
-	NSAlert *alertPanel = [NSAlert alertWithMessageText:title defaultButton:@"OK" alternateButton:nil otherButton:nil informativeTextWithFormat:@"%@", message];
-	[alertPanel beginSheetModalForWindow:[sender window] modalDelegate:nil didEndSelector:NULL contextInfo:NULL];
+    NSAlert *alertPanel = [[NSAlert alloc] init];
+    [alertPanel setMessageText:title];
+    [alertPanel addButtonWithTitle:@"OK"];
+    [alertPanel setInformativeText:message];
+    [alertPanel beginSheetModalForWindow:[sender window] completionHandler:^(NSModalResponse returnCode) {
+        
+    }];
 }
 
 - (NSUInteger)webView:(WebView *)sender dragDestinationActionMaskForDraggingInfo:(id <NSDraggingInfo>)draggingInfo
@@ -333,8 +338,12 @@
 	NSString *host = [URL host];
 	if ([[self hostCertificates] objectForKey:host] == nil)
 	{
-		NSURLConnection *connection = [[NSURLConnection alloc] initWithRequest:request delegate:self];
-		[[self connectionsToRequests] setObject:request forKey:connection];
+        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
+        [config setTLSMinimumSupportedProtocol:kTLSProtocol12];
+        NSURLSession *session = [NSURLSession sessionWithConfiguration:config delegate:self delegateQueue:nil];
+        NSURLSessionDataTask *task = [session dataTaskWithRequest:request];
+        [[self connectionsToRequests] setObject:request forKey:task];
+        [task resume];
 	}
 #endif
 	return request;
@@ -343,16 +352,20 @@
 #pragma mark - NURLConnection delegate
 
 #if RETRIEVE_SSL_CERTIFICATES
-- (NSCachedURLResponse *)connection:(NSURLConnection *)connection willCacheResponse:(NSCachedURLResponse *)cachedResponse
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask willCacheResponse:(NSCachedURLResponse *)proposedResponse
+ completionHandler:(void (^)(NSCachedURLResponse * __nullable cachedResponse))completionHandler;
 {
-	return cachedResponse;
+	completionHandler(proposedResponse);
 }
 
-- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveResponse:(NSURLResponse *)response
+ completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler
 {
+    completionHandler(NSURLSessionResponseAllow);
 }
 
-- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
+    didReceiveData:(NSData *)data
 {
 }
 
@@ -361,9 +374,9 @@
 	return request;
 }
 
-- (void)connectionDidFinishLoading:(NSURLConnection *)connection
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(nullable NSError *)error
 {
-	[[self connectionsToRequests] setObject:nil forKey:connection];
+	[[self connectionsToRequests] setObject:nil forKey:task];
 }
 
 - (BOOL)connection:(NSURLConnection *)connection canAuthenticateAgainstProtectionSpace:(NSURLProtectionSpace *)protectionSpace
@@ -371,7 +384,9 @@
 	return YES;
 }
 
-- (void)connection:(NSURLConnection *)connection didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge;
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
+ completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * __nullable credential))completionHandler
+
 {
 	SecTrustRef trustRef = [[challenge protectionSpace] serverTrust];
 	SecTrustResultType resultType;
@@ -385,12 +400,13 @@
 		[certificates addObject:(id)CFBridgingRelease(certificateRef)];
 	}
 
-	NSURLRequest *request = [[self connectionsToRequests] objectForKey:connection];
+	NSURLRequest *request = [[self connectionsToRequests] objectForKey:task];
 	NSURL *URL = [request URL];
 	NSString *host = [URL host];
 	[[self hostCertificates] setObject:certificates forKey:host];
 
     [[challenge sender] useCredential:[NSURLCredential credentialForTrust:trustRef] forAuthenticationChallenge:challenge];
+    completionHandler(NSURLSessionAuthChallengeUseCredential,[NSURLCredential credentialForTrust:trustRef]);
 }
 #endif
 
