@@ -397,13 +397,13 @@
 	CFIndex idx;
 	for (idx = 0; idx < (CFIndex)count; idx++) {
 		SecCertificateRef certificateRef = SecTrustGetCertificateAtIndex(trustRef, idx);
-		[certificates addObject:(id)CFBridgingRelease(certificateRef)];
+		[certificates addObject:(__bridge id)certificateRef];
 	}
 
 	NSURLRequest *request = [[self connectionsToRequests] objectForKey:task];
 	NSURL *URL = [request URL];
 	NSString *host = [URL host];
-	[[self hostCertificates] setObject:certificates forKey:host];
+    [[self hostCertificates] setObject:certificates forKey:host];
 
     [[challenge sender] useCredential:[NSURLCredential credentialForTrust:trustRef] forAuthenticationChallenge:challenge];
     completionHandler(NSURLSessionAuthChallengeUseCredential,[NSURLCredential credentialForTrust:trustRef]);
