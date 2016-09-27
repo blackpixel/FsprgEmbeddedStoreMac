@@ -405,9 +405,10 @@
 	NSString *host = [URL host];
     [[self hostCertificates] setObject:certificates forKey:host];
 
-    [[challenge sender] useCredential:[NSURLCredential credentialForTrust:trustRef] forAuthenticationChallenge:challenge];
-    completionHandler(NSURLSessionAuthChallengeUseCredential,[NSURLCredential credentialForTrust:trustRef]);
+    __block NSURLCredential *credential = [NSURLCredential credentialForTrust:trustRef];
+    completionHandler(NSURLSessionAuthChallengeUseCredential,credential);
 }
+
 #endif
 
 
