@@ -107,6 +107,11 @@
 {
 	// Keep a weak reference to delegates to prevent circular references
 	// See https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/MemoryMgmt/Articles/mmObjectOwnership.html#//apple_ref/doc/uid/20000043-1044135
+
+#if !__has_feature(objc_arc)
+    [delegate release];
+#endif
+
 	delegate = aDelegate;
 }
 
