@@ -16,7 +16,13 @@
  */
 @interface FsprgEmbeddedStoreController : NSObject <NSURLSessionDelegate,NSURLSessionTaskDelegate,NSURLSessionDataDelegate>{
     WebView* webView;
+
+#if !__has_feature(objc_arc)
+    id <FsprgEmbeddedStoreDelegate> delegate;
+#else
     __weak id <FsprgEmbeddedStoreDelegate> delegate;
+#endif
+
     NSString *storeHost;
     NSMutableDictionary *hostCertificates;
     NSMapTable *connectionsToRequests;
